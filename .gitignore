@@ -129,3 +129,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Faceformer specific
+vocaset/data_verts.npy
+vocaset/raw_audio_fixed.pkl
+vocaset/subj_seq_to_idx.pkl
+vocaset/templates.pkl
+vocaset/templates/FLAME_sample.ply
+vocaset/vocaset.pth
+vocaset/vertices_npy
+vocaset/wav
+vocaset/result
+BIWI/biwi.pth
+demo/
