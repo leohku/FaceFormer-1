@@ -172,9 +172,15 @@ def render_sequence(args):
     writer.release()
     file_name = test_name+"_"+args.subject+"_condition_"+args.condition
 
+    tmp_video_file_2 = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=output_path)
+    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 -y {1}'.format(
+       tmp_video_file.name, tmp_video_file_2.name)).split()
+    call(cmd)
+
+    # Add audio
     video_fname = os.path.join(output_path, file_name+'.mp4')
-    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 {1}'.format(
-       tmp_video_file.name, video_fname)).split()
+    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a aac -strict experimental -y {2}'.format(
+         tmp_video_file_2.name, wav_path, video_fname)).split()
     call(cmd)
 
 def main():
@@ -187,7 +193,6 @@ def main():
     parser.add_argument("--vertice_dim", type=int, default=23370*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--train_subjects", type=str, default="F2 F3 F4 M3 M4 M5")
-    parser.add_argument("--test_subjects", type=str, default="F1 F5 F6 F7 F8 M1 M2 M6")
     parser.add_argument("--output_path", type=str, default="demo/output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="demo/wav/test.wav", help='path of the input audio signal')
     parser.add_argument("--result_path", type=str, default="demo/result", help='path of the predictions')

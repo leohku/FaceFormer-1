@@ -104,14 +104,12 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
 
     return color[..., ::-1]
 
-def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_vertices_path,vt, ft ,tex_img):
+def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_vertices_path,vt, ft ,tex_img, wav_path):
     num_frames = sequence_vertices.shape[0]
-    file_name_pred = predicted_vertices_path.split('/')[-1].split('.')[0]
     tmp_video_file_pred = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=out_path)
     writer_pred = cv2.VideoWriter(tmp_video_file_pred.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (800, 800), True)
 
     center = np.mean(sequence_vertices[0], axis=0)
-    video_fname_pred = os.path.join(out_path, file_name_pred+'.mp4')
     for i_frame in range(num_frames):
         render_mesh = Mesh(sequence_vertices[i_frame], template.f)
         if vt is not None and ft is not None:
@@ -122,9 +120,19 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
         writer_pred.write(img)
 
     writer_pred.release()
-    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 {1}'.format(
-       tmp_video_file_pred.name, video_fname_pred)).split()
+    tmp_video_file_2 = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=out_path)
+    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 -y {1}'.format(
+       tmp_video_file_pred.name, tmp_video_file_2.name)).split()
     call(cmd)
+
+    # Add audio
+    file_name_pred = predicted_vertices_path.split('/')[-1].split('.')[0]
+    wav_file_path = os.path.join(wav_path, '_'.join(file_name_pred.split('_')[:5])+'.wav')
+    video_fname_pred = os.path.join(out_path, file_name_pred+'.mp4')
+    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a aac -strict experimental -y {2}'.format(
+         tmp_video_file_2.name, wav_file_path, video_fname_pred)).split()
+    call(cmd)
+
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
@@ -133,12 +141,14 @@ def main():
     parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
-    parser.add_argument("--pred_path", type=str, default="result", help='path of the predictions')
+    parser.add_argument("--pred_path", type=str, default="result", help='path of the predictions directory')
+    parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio directory')
     parser.add_argument("--output", type=str, default="output", help='path of the rendered video sequences')
     args = parser.parse_args()
 
-    pred_path = os.path.join(args.dataset,args.pred_path)
-    output_path = os.path.join(args.dataset,args.output)
+    pred_path = os.path.join(args.dataset, args.pred_path)
+    output_path = os.path.join(args.dataset, args.output)
+    wav_path = os.path.join(args.dataset, args.wav_path)
     if os.path.exists(output_path):
         shutil.rmtree(output_path)
     os.makedirs(output_path)
@@ -159,7 +169,7 @@ def main():
             predicted_vertices = np.load(predicted_vertices_path)
             predicted_vertices = np.reshape(predicted_vertices,(-1,args.vertice_dim//3,3))
 
-            render_sequence_meshes(args,predicted_vertices, template, output_path,predicted_vertices_path,vt, ft ,tex_img)
+            render_sequence_meshes(args,predicted_vertices, template, output_path,predicted_vertices_path,vt, ft ,tex_img, wav_path)
 
 if __name__=="__main__":
     main()

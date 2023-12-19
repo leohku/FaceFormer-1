@@ -90,7 +90,7 @@ def read_data(args):
         if subject_id in subjects_dict["test"] and sentence_id in splits[args.dataset]['test']:
             test_data.append(v)
 
-    print(len(train_data), len(valid_data), len(test_data))
+    print("Training: " + str(len(train_data)), "Validation: " + str(len(valid_data)), "Test: " + str(len(test_data)))
     return train_data, valid_data, test_data, subjects_dict
 
 def get_dataloaders(args):

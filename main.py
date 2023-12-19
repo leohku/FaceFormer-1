@@ -20,7 +20,7 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
 
     train_subjects_list = [i for i in args.train_subjects.split(" ")]
     iteration = 0
-    for e in range(epoch+1):
+    for e in range(1, epoch+1):
         loss_log = []
         # train
         model.train()
@@ -38,7 +38,7 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
                 optimizer.step()
                 optimizer.zero_grad()
 
-            pbar.set_description("(Epoch {}, iteration {}) TRAIN LOSS:{:.7f}".format((e+1), iteration ,np.mean(loss_log)))
+            pbar.set_description("(Epoch {}, iteration {}) TRAIN LOSS:{:.7f}".format(e, iteration, np.mean(loss_log)))
         # validation
         valid_loss_log = []
         model.eval()
@@ -50,13 +50,13 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
                 condition_subject = train_subject
                 iter = train_subjects_list.index(condition_subject)
                 one_hot = one_hot_all[:,iter,:]
-                loss = model(audio, template,  vertice, one_hot, criterion)
+                loss = model(audio, template, vertice, one_hot, criterion)
                 valid_loss_log.append(loss.item())
             else:
                 for iter in range(one_hot_all.shape[-1]):
                     condition_subject = train_subjects_list[iter]
                     one_hot = one_hot_all[:,iter,:]
-                    loss = model(audio, template,  vertice, one_hot, criterion)
+                    loss = model(audio, template, vertice, one_hot, criterion)
                     valid_loss_log.append(loss.item())
                         
         current_loss = np.mean(valid_loss_log)
@@ -64,7 +64,7 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
         if (e > 0 and e % 25 == 0) or e == args.max_epoch:
             torch.save(model.state_dict(), os.path.join(save_path,'{}_model.pth'.format(e)))
 
-        print("epcoh: {}, current loss:{:.7f}".format(e+1,current_loss))    
+        print("epoch: {}, current loss:{:.7f}".format(e, current_loss))    
     return model
 
 @torch.no_grad()
