@@ -106,7 +106,7 @@ def count_parameters(model):
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
-    parser.add_argument("--dataset", type=str, default="/data3/leoho/faceformer", help='base directory for dataset folder')
+    parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
     parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')

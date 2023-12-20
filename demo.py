@@ -171,14 +171,14 @@ def render_sequence(args):
 
     # Add audio
     video_fname = os.path.join(output_path, file_name+'.mp4')
-    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a aac -strict experimental -y {2}'.format(
+    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a flac -strict experimental -y {2}'.format(
          tmp_video_file_2.name, wav_path, video_fname)).split()
     call(cmd)
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--model_name", type=str, default="vocaset", help='name of the .pth model')
-    parser.add_argument("--dataset", type=str, default="/data3/leoho/faceformer", help='base directory for dataset folder')
+    parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
     parser.add_argument("--fps", type=float, default=30, help='frame rate')
     parser.add_argument("--feature_dim", type=int, default=64, help='feature dimensions')
     parser.add_argument("--period", type=int, default=30, help='period in PPE')

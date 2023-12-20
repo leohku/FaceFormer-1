@@ -124,14 +124,14 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
     file_name_pred = predicted_vertices_path.split('/')[-1].split('.')[0]
     wav_file_path = os.path.join(wav_path, '_'.join(file_name_pred.split('_')[:5])+'.wav')
     video_fname_pred = os.path.join(out_path, file_name_pred+'.mp4')
-    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a aac -strict experimental -y {2}'.format(
+    cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a flac -strict experimental -y {2}'.format(
          tmp_video_file_2.name, wav_file_path, video_fname_pred)).split()
     call(cmd)
 
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--dataset", type=str, default="/data3/leoho/faceformer", help='base directory for dataset folder')
+    parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
     parser.add_argument("--render_template_path", type=str, default="templates", help='path of the mesh in FLAME topology')
     parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate')
