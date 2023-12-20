@@ -13,7 +13,7 @@ from data_loader import get_dataloaders
 from faceformer import Faceformer
 
 def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=100):
-    save_path = os.path.join(args.dataset,args.save_path)
+    save_path = os.path.join(args.dataset, args.save_path)
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
     os.makedirs(save_path)
@@ -74,7 +74,7 @@ def test(args, model, test_loader,epoch):
         shutil.rmtree(result_path)
     os.makedirs(result_path)
 
-    save_path = os.path.join(args.dataset,args.save_path)
+    save_path = os.path.join(args.dataset, args.save_path)
     train_subjects_list = [i for i in args.train_subjects.split(" ")]
 
     model.load_state_dict(torch.load(os.path.join(save_path, '{}_model.pth'.format(epoch))))
@@ -106,7 +106,7 @@ def count_parameters(model):
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
-    parser.add_argument("--dataset", type=str, default="vocaset", help='vocaset or BIWI')
+    parser.add_argument("--dataset", type=str, default="/data3/leoho/faceformer", help='base directory for dataset folder')
     parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')

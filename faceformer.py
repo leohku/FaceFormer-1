@@ -31,14 +31,10 @@ def init_biased_mask(n_head, max_seq_len, period):
     return mask
 
 # Alignment Bias
-def enc_dec_mask(device, dataset, T, S):
+def enc_dec_mask(device, T, S):
     mask = torch.ones(T, S)
-    if dataset == "BIWI":
-        for i in range(T):
-            mask[i, i*2:i*2+2] = 0
-    elif dataset == "vocaset":
-        for i in range(T):
-            mask[i, i] = 0
+    for i in range(T):
+        mask[i, i] = 0
     return (mask==1).to(device=device)
 
 # Periodic Positional Encoding
@@ -67,7 +63,6 @@ class Faceformer(nn.Module):
         template: (batch_size, V*3)
         vertice: (batch_size, seq_len, V*3)
         """
-        self.dataset = args.dataset
         self.audio_encoder = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h")
         # wav2vec 2.0 weights initialization
         self.audio_encoder.feature_extractor._freeze_parameters()
@@ -94,11 +89,7 @@ class Faceformer(nn.Module):
         template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)#(1, feature_dim)
         frame_num = vertice.shape[1]
-        hidden_states = self.audio_encoder(audio, self.dataset, frame_num=frame_num).last_hidden_state
-        if self.dataset == "BIWI":
-            if hidden_states.shape[1]<frame_num*2:
-                vertice = vertice[:, :hidden_states.shape[1]//2]
-                frame_num = hidden_states.shape[1]//2
+        hidden_states = self.audio_encoder(audio, frame_num=frame_num).last_hidden_state
         hidden_states = self.audio_feature_map(hidden_states)
 
         if teacher_forcing:
@@ -110,7 +101,7 @@ class Faceformer(nn.Module):
             vertice_input = vertice_input + style_emb
             vertice_input = self.PPE(vertice_input)
             tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
-            memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
+            memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
             vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
             vertice_out = self.vertice_map_r(vertice_out)
         else:
@@ -122,7 +113,7 @@ class Faceformer(nn.Module):
                 else:
                     vertice_input = self.PPE(vertice_emb)
                 tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
-                memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
+                memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
                 vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
                 vertice_out = self.vertice_map_r(vertice_out)
                 new_output = self.vertice_map(vertice_out[:,-1,:]).unsqueeze(1)
@@ -137,11 +128,8 @@ class Faceformer(nn.Module):
     def predict(self, audio, template, one_hot):
         template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)
-        hidden_states = self.audio_encoder(audio, self.dataset).last_hidden_state
-        if self.dataset == "BIWI":
-            frame_num = hidden_states.shape[1]//2
-        elif self.dataset == "vocaset":
-            frame_num = hidden_states.shape[1]
+        hidden_states = self.audio_encoder(audio).last_hidden_state
+        frame_num = hidden_states.shape[1]
         hidden_states = self.audio_feature_map(hidden_states)
 
         for i in range(frame_num):
@@ -153,7 +141,7 @@ class Faceformer(nn.Module):
                 vertice_input = self.PPE(vertice_emb)
 
             tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
-            memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
+            memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
             vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
             vertice_out = self.vertice_map_r(vertice_out)
             new_output = self.vertice_map(vertice_out[:,-1,:]).unsqueeze(1)

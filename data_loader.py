@@ -67,27 +67,23 @@ def read_data(args):
                 if not os.path.exists(vertice_path):
                     del data[key]
                 else:
-                    if args.dataset == "vocaset":
-                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)[::2,:]#due to the memory limit
-                    elif args.dataset == "BIWI":
-                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
+                    data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
 
     subjects_dict = {}
     subjects_dict["train"] = [i for i in args.train_subjects.split(" ")]
     subjects_dict["val"] = [i for i in args.val_subjects.split(" ")]
     subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
 
-    splits = {'vocaset':{'train':range(1,41),'val':range(21,41),'test':range(21,41)},
-     'BIWI':{'train':range(1,33),'val':range(33,37),'test':range(37,41)}}
+    splits = {'train':range(1,41),'val':range(21,41),'test':range(21,41)}
    
     for k, v in data.items():
         subject_id = "_".join(k.split("_")[:-1])
         sentence_id = int(k.split(".")[0][-2:])
-        if subject_id in subjects_dict["train"] and sentence_id in splits[args.dataset]['train']:
+        if subject_id in subjects_dict["train"] and sentence_id in splits['train']:
             train_data.append(v)
-        if subject_id in subjects_dict["val"] and sentence_id in splits[args.dataset]['val']:
+        if subject_id in subjects_dict["val"] and sentence_id in splits['val']:
             valid_data.append(v)
-        if subject_id in subjects_dict["test"] and sentence_id in splits[args.dataset]['test']:
+        if subject_id in subjects_dict["test"] and sentence_id in splits['test']:
             test_data.append(v)
 
     print("Training: " + str(len(train_data)), "Validation: " + str(len(valid_data)), "Test: " + str(len(test_data)))

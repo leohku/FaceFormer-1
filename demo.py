@@ -61,14 +61,9 @@ def test_model(args):
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
 def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_offset=0):
-    if args.dataset == "BIWI":
-        camera_params = {'c': np.array([400, 400]),
-                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                         'f': np.array([4754.97941935 / 8, 4754.97941935 / 8])}
-    elif args.dataset == "vocaset":
-        camera_params = {'c': np.array([400, 400]),
-                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
+    camera_params = {'c': np.array([400, 400]),
+                        'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
+                        'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
 
     frustum = {'near': 0.01, 'far': 3.0, 'height': 800, 'width': 800}
 
@@ -142,10 +137,7 @@ def render_sequence(args):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
     predicted_vertices_path = os.path.join(args.result_path,test_name+".npy")
-    if args.dataset == "BIWI":
-        template_file = os.path.join(args.dataset, args.render_template_path, "BIWI.ply")
-    elif args.dataset == "vocaset":
-        template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+    template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
          
     print("rendering: ", test_name)
                  
@@ -185,12 +177,12 @@ def render_sequence(args):
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="biwi")
-    parser.add_argument("--dataset", type=str, default="BIWI", help='vocaset or BIWI')
-    parser.add_argument("--fps", type=float, default=25, help='frame rate - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--feature_dim", type=int, default=128, help='64 for vocaset; 128 for BIWI')
-    parser.add_argument("--period", type=int, default=25, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--vertice_dim", type=int, default=23370*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
+    parser.add_argument("--model_name", type=str, default="vocaset", help='name of the .pth model')
+    parser.add_argument("--dataset", type=str, default="/data3/leoho/faceformer", help='base directory for dataset folder')
+    parser.add_argument("--fps", type=float, default=30, help='frame rate')
+    parser.add_argument("--feature_dim", type=int, default=64, help='feature dimensions')
+    parser.add_argument("--period", type=int, default=30, help='period in PPE')
+    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--train_subjects", type=str, default="F2 F3 F4 M3 M4 M5")
     parser.add_argument("--output_path", type=str, default="demo/output", help='path of the rendered video sequence')
@@ -200,7 +192,7 @@ def main():
     parser.add_argument("--subject", type=str, default="M1", help='select a subject from test_subjects or train_subjects')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
     parser.add_argument("--template_path", type=str, default="templates.pkl", help='path of the personalized templates')
-    parser.add_argument("--render_template_path", type=str, default="templates", help='path of the mesh in BIWI/FLAME topology')
+    parser.add_argument("--render_template_path", type=str, default="templates", help='path of the template obj/ply mesh')
     args = parser.parse_args()   
 
     test_model(args)
