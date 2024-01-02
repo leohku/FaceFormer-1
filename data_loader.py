@@ -27,7 +27,7 @@ class Dataset(data.Dataset):
         vertice = self.data[index]["vertice"]
         template = self.data[index]["template"]
         if self.data_type == "train":
-            subject = "_".join(file_name.split("_")[:-1])
+            subject = file_name.split("_")[1]
             one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
         else:
             one_hot = self.one_hot_labels
@@ -59,7 +59,7 @@ def read_data(args):
                 input_values = np.squeeze(processor(speech_array,sampling_rate=16000).input_values)
                 key = f.replace("wav", "npy")
                 data[key]["audio"] = input_values
-                subject_id = "_".join(key.split("_")[:-1])
+                subject_id = key.split("_")[1]
                 temp = templates[subject_id]
                 data[key]["name"] = f
                 data[key]["template"] = temp.reshape((-1)) 
@@ -67,24 +67,38 @@ def read_data(args):
                 if not os.path.exists(vertice_path):
                     del data[key]
                 else:
-                    data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
+                    data[key]["vertice"] = np.load(vertice_path,allow_pickle=True) # memory tweak
 
     subjects_dict = {}
     subjects_dict["train"] = [i for i in args.train_subjects.split(" ")]
     subjects_dict["val"] = [i for i in args.val_subjects.split(" ")]
     subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
 
-    splits = {'train':range(1,41),'val':range(21,41),'test':range(21,41)}
+    splits = {'train':range(51,786),'val':range(786,792),'test':range(786,792)}
+    
+    def segmented_append(data_list, orig_v, seconds=15):
+        audio_ticks = orig_v["audio"].shape[0]
+        for i in range(math.ceil(audio_ticks / (16000 * seconds))):
+            new_v = defaultdict(dict)
+            new_v["name"] = orig_v["name"] + "-" + str(i)
+            new_v["template"] = orig_v["template"]
+            if (i+1) * 16000 * seconds <= audio_ticks:
+                new_v["audio"] = orig_v["audio"][i * 16000 * seconds : (i+1) * 16000 * seconds]
+                new_v["vertice"] = orig_v["vertice"][i * 30 * seconds : (i+1) * 30 * seconds]
+            else:
+                new_v["audio"] = orig_v["audio"][i * 16000 * seconds :]
+                new_v["vertice"] = orig_v["vertice"][i * 30 * seconds :]
+            data_list.append(new_v)
    
     for k, v in data.items():
-        subject_id = "_".join(k.split("_")[:-1])
-        sentence_id = int(k.split(".")[0][-2:])
+        subject_id = k.split("_")[1]
+        sentence_id = int(k.split(".")[0][-3:])
         if subject_id in subjects_dict["train"] and sentence_id in splits['train']:
-            train_data.append(v)
+            segmented_append(train_data, v, seconds=20)
         if subject_id in subjects_dict["val"] and sentence_id in splits['val']:
-            valid_data.append(v)
+            segmented_append(valid_data, v, seconds=20)
         if subject_id in subjects_dict["test"] and sentence_id in splits['test']:
-            test_data.append(v)
+            segmented_append(test_data, v, seconds=20) 
 
     print("Training: " + str(len(train_data)), "Validation: " + str(len(valid_data)), "Test: " + str(len(test_data)))
     return train_data, valid_data, test_data, subjects_dict

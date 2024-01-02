@@ -1,10 +1,12 @@
 TODO: Rewrite this for ARFriend
 
-python main.py --dataset /data3/leoho/vocaset --vertice_dim 15069 --feature_dim 64 --period 30 --train_subjects "FaceTalk_170728_03272_TA FaceTalk_170904_00128_TA FaceTalk_170725_00137_TA FaceTalk_170915_00223_TA FaceTalk_170811_03274_TA FaceTalk_170913_03279_TA FaceTalk_170904_03276_TA FaceTalk_170912_03278_TA" --val_subjects "FaceTalk_170811_03275_TA FaceTalk_170908_03277_TA" --test_subjects "FaceTalk_170809_00138_TA FaceTalk_170731_00024_TA"
+python main.py --dataset /data3/leoho/arfriend --vertice_dim 72147 --feature_dim 64 --period 30 --train_subjects "001Sky 002Shirley" --val_subjects "001Sky" --test_subjects "001Sky" --max_epoch 100
 
-python render.py --dataset /data3/leoho/vocaset --vertice_dim 15069 --fps 30
+python render.py --dataset /data3/leoho/arfriend --vertice_dim 72147 --fps 30
 
 python demo.py --dataset /data3/leoho/vocaset --model_name vocaset --wav_path "demo/wav/test.wav" --vertice_dim 15069 --feature_dim 64 --period 30  --fps 30  --train_subjects "FaceTalk_170728_03272_TA FaceTalk_170904_00128_TA FaceTalk_170725_00137_TA FaceTalk_170915_00223_TA FaceTalk_170811_03274_TA FaceTalk_170913_03279_TA FaceTalk_170904_03276_TA FaceTalk_170912_03278_TA" --condition FaceTalk_170913_03279_TA --subject FaceTalk_170809_00138_TA
+
+python demo.py --dataset /data3/leoho/arfriend --model_name "25_model.pth" --vertice_dim 72147 --feature_dim 64 --period 30 --train_subjects "001Sky 002Shirley" --condition 002Shirley --subject 001Sky --wav_path "demo/wav/test.wav"
 
 ## FaceFormer
 

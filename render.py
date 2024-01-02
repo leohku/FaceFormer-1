@@ -65,7 +65,7 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
     camera_pose[:3,3] = np.array([0, 0, 1.0-z_offset])
     scene.add(camera, pose=[[1, 0, 0, 0],
                             [0, 1, 0, 0],
-                            [0, 0, 1, 1],
+                            [0, 0, 1, 1.2],
                             [0, 0, 0, 1]])
 
     angle = np.pi / 6.0
@@ -106,6 +106,8 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
 
     center = np.mean(sequence_vertices[0], axis=0)
     for i_frame in range(num_frames):
+    # for i_frame in range(1): # for fast camera debug
+    # for i_frame in range(304 // 2, 3766 // 2 + 1): # for specified frame range, //2 to convert to 30fps
         render_mesh = Mesh(sequence_vertices[i_frame], template.f)
         if vt is not None and ft is not None:
             render_mesh.vt, render_mesh.ft = vt, ft
@@ -122,7 +124,8 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
 
     # Add audio
     file_name_pred = predicted_vertices_path.split('/')[-1].split('.')[0]
-    wav_file_path = os.path.join(wav_path, '_'.join(file_name_pred.split('_')[:5])+'.wav')
+    wav_file_path = os.path.join(wav_path, '_'.join(file_name_pred.split('_')[:3])+'.wav')
+    # wav_file_path = os.path.join(wav_path, file_name_pred+'.wav')
     video_fname_pred = os.path.join(out_path, file_name_pred+'.mp4')
     cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a flac -strict experimental -y {2}'.format(
          tmp_video_file_2.name, wav_file_path, video_fname_pred)).split()
@@ -132,10 +135,10 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
-    parser.add_argument("--render_template_path", type=str, default="templates", help='path of the mesh in FLAME topology')
+    parser.add_argument("--render_template_path", type=str, default="templates/001Sky.obj", help='path of the mesh in FLAME topology')
     parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate')
-    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices')
+    parser.add_argument("--vertice_dim", type=int, default=24049*3, help='number of vertices * 3')
     parser.add_argument("--pred_path", type=str, default="result", help='path of the predictions directory')
     parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio directory')
     parser.add_argument("--output", type=str, default="output", help='path of the rendered video sequences')
@@ -151,7 +154,7 @@ def main():
     for file in os.listdir(pred_path):
         if file.endswith("npy"):
             predicted_vertices_path = os.path.join(pred_path,file)
-            template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+            template_file = os.path.join(args.dataset, args.render_template_path)
             print("rendering: ", file)
         
             template = Mesh(filename=template_file)

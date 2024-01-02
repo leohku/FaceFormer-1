@@ -17,6 +17,7 @@ os.environ['PYOPENGL_PLATFORM'] = 'osmesa' # egl
 import pyrender
 from psbody.mesh import Mesh
 import trimesh
+import math
 
 @torch.no_grad()
 def test_model(args):
@@ -25,7 +26,7 @@ def test_model(args):
 
     #build model
     model = Faceformer(args)
-    model.load_state_dict(torch.load(os.path.join(args.dataset, '{}.pth'.format(args.model_name))))
+    model.load_state_dict(torch.load(os.path.join(args.dataset, 'save', '{}'.format(args.model_name))))
     model = model.to(torch.device(args.device))
     model.eval()
 
@@ -99,7 +100,7 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
     camera_pose[:3,3] = np.array([0, 0, 1.0-z_offset])
     scene.add(camera, pose=[[1, 0, 0, 0],
                             [0, 1, 0, 0],
-                            [0, 0, 1, 1],
+                            [0, 0, 1, 1.2],
                             [0, 0, 0, 1]])
 
     angle = np.pi / 6.0
@@ -137,7 +138,7 @@ def render_sequence(args):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
     predicted_vertices_path = os.path.join(args.result_path,test_name+".npy")
-    template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+    template_file = os.path.join(args.dataset, args.render_template_path, args.subject+'.obj')
          
     print("rendering: ", test_name)
                  
@@ -177,14 +178,14 @@ def render_sequence(args):
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="vocaset", help='name of the .pth model')
+    parser.add_argument("--model_name", type=str, default="50_model.pth", help='name of the .pth model')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
     parser.add_argument("--fps", type=float, default=30, help='frame rate')
     parser.add_argument("--feature_dim", type=int, default=64, help='feature dimensions')
     parser.add_argument("--period", type=int, default=30, help='period in PPE')
-    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices')
+    parser.add_argument("--vertice_dim", type=int, default=24049*3, help='number of vertices')
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--train_subjects", type=str, default="F2 F3 F4 M3 M4 M5")
+    parser.add_argument("--train_subjects", type=str, default="001Sky 002Shirley")
     parser.add_argument("--output_path", type=str, default="demo/output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="demo/wav/test.wav", help='path of the input audio signal')
     parser.add_argument("--result_path", type=str, default="demo/result", help='path of the predictions')
@@ -193,7 +194,11 @@ def main():
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
     parser.add_argument("--template_path", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--render_template_path", type=str, default="templates", help='path of the template obj/ply mesh')
-    args = parser.parse_args()   
+    args = parser.parse_args()
+    
+    # limit cpu usage
+    os.environ['OMP_NUM_THREADS'] = '8'
+    torch.set_num_threads(8)  
 
     test_model(args)
     render_sequence(args)

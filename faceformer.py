@@ -39,7 +39,7 @@ def enc_dec_mask(device, T, S):
 
 # Periodic Positional Encoding
 class PeriodicPositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, period=25, max_seq_len=600):
+    def __init__(self, d_model, dropout=0.1, period=25, max_seq_len=6000):
         super(PeriodicPositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
         pe = torch.zeros(period, d_model)
@@ -72,7 +72,7 @@ class Faceformer(nn.Module):
         # periodic positional encoding 
         self.PPE = PeriodicPositionalEncoding(args.feature_dim, period = args.period)
         # temporal bias
-        self.biased_mask = init_biased_mask(n_head = 4, max_seq_len = 600, period=args.period)
+        self.biased_mask = init_biased_mask(n_head = 4, max_seq_len = 6000, period=args.period)
         decoder_layer = nn.TransformerDecoderLayer(d_model=args.feature_dim, nhead=4, dim_feedforward=2*args.feature_dim, batch_first=True)        
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=1)
         # motion decoder

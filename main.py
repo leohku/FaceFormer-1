@@ -29,6 +29,7 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
 
         for i, (audio, vertice, template, one_hot, file_name) in pbar:
             iteration += 1
+            pbar.set_description("(Epoch {}, iteration {}, file {}) TRAIN LOSS:{:.7f}".format(e, iteration, file_name, np.mean(loss_log)))
             # to gpu
             audio, vertice, template, one_hot  = audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot.to(device="cuda")
             loss = model(audio, template,  vertice, one_hot, criterion,teacher_forcing=False)
@@ -38,14 +39,13 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
                 optimizer.step()
                 optimizer.zero_grad()
 
-            pbar.set_description("(Epoch {}, iteration {}) TRAIN LOSS:{:.7f}".format(e, iteration, np.mean(loss_log)))
         # validation
         valid_loss_log = []
         model.eval()
         for audio, vertice, template, one_hot_all,file_name in dev_loader:
             # to gpu
             audio, vertice, template, one_hot_all= audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot_all.to(device="cuda")
-            train_subject = "_".join(file_name[0].split("_")[:-1])
+            train_subject = file_name[0].split("_")[1]
             if train_subject in train_subjects_list:
                 condition_subject = train_subject
                 iter = train_subjects_list.index(condition_subject)
@@ -84,7 +84,7 @@ def test(args, model, test_loader,epoch):
     for audio, vertice, template, one_hot_all, file_name in test_loader:
         # to gpu
         audio, vertice, template, one_hot_all= audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot_all.to(device="cuda")
-        train_subject = "_".join(file_name[0].split("_")[:-1])
+        train_subject = file_name[0].split("_")[1]
         if train_subject in train_subjects_list:
             condition_subject = train_subject
             iter = train_subjects_list.index(condition_subject)
@@ -135,6 +135,10 @@ def main():
     # to cuda
     assert torch.cuda.is_available()
     model = model.to(torch.device("cuda"))
+    
+    # limit cpu usage
+    os.environ['OMP_NUM_THREADS'] = '8'
+    torch.set_num_threads(8)
     
     #load data
     dataset = get_dataloaders(args)

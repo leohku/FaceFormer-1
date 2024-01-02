@@ -8,6 +8,10 @@
 		},
 		{
 			"path": "/data3/leoho/arfriend"
+		},
+		{
+			"name": "home",
+			"path": "/home/leoho"
 		}
 	]
 }
