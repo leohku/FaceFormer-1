@@ -107,25 +107,24 @@ def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
-    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
-    parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
-    parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--wav_path", type=str, default= "wav", help='path of the audio signals')
+    parser.add_argument("--vertice_dim", type=int, default=17543*3, help='number of vertices - unmasked: 24049*3')
+    parser.add_argument("--feature_dim", type=int, default=128, help='128, or use 64 to save some VRAM')
+    parser.add_argument("--period", type=int, default=30, help='period in PPE')
+    parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio signals')
     parser.add_argument("--vertices_path", type=str, default="vertices_npy", help='path of the ground truth')
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help='gradient accumulation')
-    parser.add_argument("--max_epoch", type=int, default=100, help='number of epochs')
+    parser.add_argument("--max_epoch", type=int, default=200, help='number of epochs')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
-    parser.add_argument("--train_subjects", type=str, default="FaceTalk_170728_03272_TA"
-       " FaceTalk_170904_00128_TA FaceTalk_170725_00137_TA FaceTalk_170915_00223_TA"
-       " FaceTalk_170811_03274_TA FaceTalk_170913_03279_TA"
-       " FaceTalk_170904_03276_TA FaceTalk_170912_03278_TA")
-    parser.add_argument("--val_subjects", type=str, default="FaceTalk_170811_03275_TA"
-       " FaceTalk_170908_03277_TA")
-    parser.add_argument("--test_subjects", type=str, default="FaceTalk_170809_00138_TA"
-       " FaceTalk_170731_00024_TA")
+    parser.add_argument("--segment_append_seconds", type=int, default=15, help='split samples every x seconds')
+    parser.add_argument("--train_subjects", type=str, default="001Sky 002Shirley")
+    parser.add_arugment("--train_splits", type=str, default="51 786", help='training splits in "x y" format denoting [x,y)')
+    parser.add_argument("--val_subjects", type=str, default="001Sky")
+    parser.add_argument("--val_splits", type=str, default="786 792", help='validation splits in "x y" format denoting [x,y)')
+    parser.add_argument("--test_subjects", type=str, default="001Sky")
+    parser.add_argument("--test_splits", type=str, default="786 792", help='testing splits in "x y" format denoting [x,y)')
     args = parser.parse_args()
 
     #build model

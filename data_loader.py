@@ -74,7 +74,9 @@ def read_data(args):
     subjects_dict["val"] = [i for i in args.val_subjects.split(" ")]
     subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
 
-    splits = {'train':range(51,786),'val':range(786,792),'test':range(786,792)}
+    splits = {'train':range(*[int(i) for i in args.train_splits.split(" ")]),
+              'val':range(*[int(i) for i in args.val_splits.split(" ")]),
+              'test':range(*[int(i) for i in args.test_splits.split(" ")])}
     
     def segmented_append(data_list, orig_v, seconds=15):
         audio_ticks = orig_v["audio"].shape[0]
@@ -94,11 +96,11 @@ def read_data(args):
         subject_id = k.split("_")[1]
         sentence_id = int(k.split(".")[0][-3:])
         if subject_id in subjects_dict["train"] and sentence_id in splits['train']:
-            segmented_append(train_data, v, seconds=20)
+            segmented_append(train_data, v, seconds=args.segment_append_seconds)
         if subject_id in subjects_dict["val"] and sentence_id in splits['val']:
-            segmented_append(valid_data, v, seconds=20)
+            segmented_append(valid_data, v, seconds=args.segment_append_seconds)
         if subject_id in subjects_dict["test"] and sentence_id in splits['test']:
-            segmented_append(test_data, v, seconds=20) 
+            segmented_append(test_data, v, seconds=args.segment_append_seconds) 
 
     print("Training: " + str(len(train_data)), "Validation: " + str(len(valid_data)), "Test: " + str(len(test_data)))
     return train_data, valid_data, test_data, subjects_dict
