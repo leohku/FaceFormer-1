@@ -21,10 +21,11 @@ import argparse
 os.environ['PYOPENGL_PLATFORM'] = 'osmesa' #egl
 import pyrender
 import trimesh
+import pickle
 from psbody.mesh import Mesh
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
-def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_offset=0):
+def render_mesh_helper(args, mesh, t_center, mask_dict, rot=np.zeros(3), tex_img=None, z_offset=0):
     camera_params = {'c': np.array([400, 400]),
                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
@@ -35,14 +36,21 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
     mesh_copy.v[:] = cv2.Rodrigues(rot)[0].dot((mesh_copy.v-t_center).T).T+t_center
     
     intensity = 2.0
-    rgb_per_v = None
-
-    primitive_material = pyrender.material.MetallicRoughnessMaterial(
-                alphaMode='BLEND',
-                baseColorFactor=[0.3, 0.3, 0.3, 1.0],
-                metallicFactor=0.8, 
-                roughnessFactor=0.8 
-            )
+    if args.pred_mask_color is None and args.importance_mask_color is None:
+        rgb_per_v = None
+        primitive_material = pyrender.material.MetallicRoughnessMaterial(
+                    alphaMode='BLEND',
+                    baseColorFactor=[0.3, 0.3, 0.3, 1.0],
+                    metallicFactor=0.8, 
+                    roughnessFactor=0.8 
+                )
+    else:
+        rgb_per_v = np.full((mesh.v.shape[0], mesh.v.shape[1]), [255, 255, 255])
+        if args.pred_mask_color is not None:
+            rgb_per_v[mask_dict['prediction_mask_verts']] = [int(i) for i in args.pred_mask_color.split()]
+        if args.importance_mask_color is not None:
+            rgb_per_v[mask_dict['importance_mask_verts']] = [int(i) for i in args.importance_mask_color.split()]
+        primitive_material = None
 
     tri_mesh = trimesh.Trimesh(vertices=mesh_copy.v, faces=mesh_copy.f, vertex_colors=rgb_per_v)
     render_mesh = pyrender.Mesh.from_trimesh(tri_mesh, material=primitive_material,smooth=True)
@@ -99,19 +107,25 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
 
     return color[..., ::-1]
 
-def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_vertices_path,vt, ft ,tex_img, wav_path):
+def render_sequence_meshes(args, sequence_vertices, template, out_path, predicted_vertices_path, vt, ft, tex_img, wav_path, mask_dict):
     num_frames = sequence_vertices.shape[0]
     tmp_video_file_pred = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=out_path)
     writer_pred = cv2.VideoWriter(tmp_video_file_pred.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (800, 800), True)
 
-    center = np.mean(sequence_vertices[0], axis=0)
+    center = np.mean(template.v, axis=0)
     for i_frame in range(num_frames):
     # for i_frame in range(1): # for fast camera debug
     # for i_frame in range(304 // 2, 3766 // 2 + 1): # for specified frame range, //2 to convert to 30fps
-        render_mesh = Mesh(sequence_vertices[i_frame], template.f)
+        if args.pred_masked:
+            prediction_mask_verts = mask_dict['prediction_mask_verts']
+            template_v_copy = template.v.copy()
+            template_v_copy[prediction_mask_verts] = sequence_vertices[i_frame]
+            render_mesh = Mesh(template_v_copy, template.f)
+        else:
+            render_mesh = Mesh(sequence_vertices[i_frame], template.f)
         if vt is not None and ft is not None:
             render_mesh.vt, render_mesh.ft = vt, ft
-        pred_img = render_mesh_helper(args,render_mesh, center, tex_img=tex_img)
+        pred_img = render_mesh_helper(args, render_mesh, center, mask_dict, tex_img=tex_img)
         pred_img = pred_img.astype(np.uint8)
         img = pred_img
         writer_pred.write(img)
@@ -125,7 +139,6 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
     # Add audio
     file_name_pred = predicted_vertices_path.split('/')[-1].split('.')[0]
     wav_file_path = os.path.join(wav_path, '_'.join(file_name_pred.split('_')[:3])+'.wav')
-    # wav_file_path = os.path.join(wav_path, file_name_pred+'.wav')
     video_fname_pred = os.path.join(out_path, file_name_pred+'.mp4')
     cmd = ('ffmpeg' + ' -i {0} -i {1} -c:v copy -c:a flac -strict experimental -y {2}'.format(
          tmp_video_file_2.name, wav_file_path, video_fname_pred)).split()
@@ -135,36 +148,44 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
-    parser.add_argument("--render_template_path", type=str, default="templates/001Sky.obj", help='path of the mesh in FLAME topology')
+    parser.add_argument("--render_template_path", type=str, default="templates", help='directory of the template')
     parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate')
-    parser.add_argument("--vertice_dim", type=int, default=24049*3, help='number of vertices * 3')
     parser.add_argument("--pred_path", type=str, default="result", help='path of the predictions directory')
+    parser.add_argument("--pred_masked", type=bool, default=False, help='whether the predictions are prediction masked')
     parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio directory')
-    parser.add_argument("--output", type=str, default="output", help='path of the rendered video sequences')
+    parser.add_argument("--output", type=str, default="render", help='path of the rendered video sequences')
+    parser.add_argument("--clear_output", type=bool, default=False, help='whether to clear the output directory before rendering')
+    parser.add_argument("--mask_path", type=str, default="mask/mask.pkl", help='path to the mask pickle file')
+    parser.add_argument("--pred_mask_color", type=str, help='color of the mask area in "# # #", where they correspond to R,G,B values from 0-255')
+    parser.add_argument("--importance_mask_color", type=str, help='color of the mask area in "# # #", where they correspond to R,G,B values from 0-255')
     args = parser.parse_args()
 
     pred_path = os.path.join(args.dataset, args.pred_path)
     output_path = os.path.join(args.dataset, args.output)
     wav_path = os.path.join(args.dataset, args.wav_path)
-    if os.path.exists(output_path):
+    mask_dict = None
+    if args.pred_masked or args.importance_mask_color is not None:
+        with open(os.path.join(args.dataset, args.mask_path), 'rb') as file:
+            mask_dict = pickle.load(file)
+    if args.clear_output and os.path.exists(output_path):
         shutil.rmtree(output_path)
-    os.makedirs(output_path)
+        os.makedirs(output_path)
     
     for file in os.listdir(pred_path):
         if file.endswith("npy"):
             predicted_vertices_path = os.path.join(pred_path,file)
-            template_file = os.path.join(args.dataset, args.render_template_path)
-            print("rendering: ", file)
+            template_file = os.path.join(args.dataset, args.render_template_path, file.split('_')[1] + '.obj')
+            print("rendering:", file, "with template:", file.split('_')[1] + '.obj')
         
             template = Mesh(filename=template_file)
             vt, ft = None, None
             tex_img = None
 
             predicted_vertices = np.load(predicted_vertices_path)
-            predicted_vertices = np.reshape(predicted_vertices,(-1,args.vertice_dim//3,3))
+            predicted_vertices = np.reshape(predicted_vertices,(-1,predicted_vertices.shape[1]//3,3))
 
-            render_sequence_meshes(args,predicted_vertices, template, output_path,predicted_vertices_path,vt, ft ,tex_img, wav_path)
+            render_sequence_meshes(args, predicted_vertices, template, output_path, predicted_vertices_path, vt, ft, tex_img, wav_path, mask_dict)
 
 if __name__=="__main__":
     main()
