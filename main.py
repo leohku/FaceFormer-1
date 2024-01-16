@@ -120,7 +120,7 @@ def main():
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
     parser.add_argument("--segment_append_seconds", type=int, default=15, help='split samples every x seconds')
     parser.add_argument("--train_subjects", type=str, default="001Sky 002Shirley")
-    parser.add_arugment("--train_splits", type=str, default="51 786", help='training splits in "x y" format denoting [x,y)')
+    parser.add_argument("--train_splits", type=str, default="51 786", help='training splits in "x y" format denoting [x,y)')
     parser.add_argument("--val_subjects", type=str, default="001Sky")
     parser.add_argument("--val_splits", type=str, default="786 792", help='validation splits in "x y" format denoting [x,y)')
     parser.add_argument("--test_subjects", type=str, default="001Sky")
