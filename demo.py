@@ -18,6 +18,7 @@ import pyrender
 from psbody.mesh import Mesh
 import trimesh
 import math
+import ast
 
 @torch.no_grad()
 def test_model(args):
@@ -209,10 +210,10 @@ def main():
     parser.add_argument("--wav_path", type=str, default="demo/wav/test.wav", help='path of the input audio signal')
     parser.add_argument("--result_path", type=str, default="demo/result", help='path of the predictions')
     parser.add_argument("--mask_path", type=str, default="mask/mask.pkl", help='path to the mask pickle file')
-    parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
-    parser.add_argument("--result_masked", type=bool, default=True, help='whether the predictions are prediction masked')
+    parser.add_argument("--background_black", type=ast.literal_eval, default=True, help='whether to use black background')
+    parser.add_argument("--result_masked", type=ast.literal_eval, default=True, help='whether the predictions are prediction masked')
     parser.add_argument("--train_subjects", type=str, default="001Sky 002Shirley")
-    parser.add_argument("--same_condition_as_subject", type=bool, default=True, help='whether to use the same conditioning subject as render subject')
+    parser.add_argument("--same_condition_as_subject", type=ast.literal_eval, default=True, help='whether to use the same conditioning subject as render subject')
     parser.add_argument("--subject", type=str, default="001Sky", help='select a subject from test_subjects or train_subjects')
     parser.add_argument("--condition", type=str, default="001Sky", help='select a conditioning subject from train_subjects')
     parser.add_argument("--pred_mask_color", type=str, help='color of the mask area in "# # #", where they correspond to R,G,B values from 0-255')

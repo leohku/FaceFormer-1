@@ -23,6 +23,7 @@ import pyrender
 import trimesh
 import pickle
 from psbody.mesh import Mesh
+import ast
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
 def render_mesh_helper(args, mesh, t_center, mask_dict, rot=np.zeros(3), tex_img=None, z_offset=0):
@@ -148,13 +149,13 @@ def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
     parser.add_argument("--render_template_path", type=str, default="templates", help='directory of the template')
-    parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
+    parser.add_argument('--background_black', type=ast.literal_eval, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate')
     parser.add_argument("--pred_path", type=str, default="result", help='path of the predictions directory')
-    parser.add_argument("--pred_masked", type=bool, default=False, help='whether the predictions are prediction masked')
+    parser.add_argument("--pred_masked", type=ast.literal_eval, default=False, help='whether the predictions are prediction masked')
     parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio directory')
     parser.add_argument("--output", type=str, default="render", help='path of the rendered video sequences')
-    parser.add_argument("--clear_output", type=bool, default=False, help='whether to clear the output directory before rendering')
+    parser.add_argument("--clear_output", type=ast.literal_eval, default=False, help='whether to clear the output directory before rendering')
     parser.add_argument("--mask_path", type=str, default="mask/mask.pkl", help='path to the mask pickle file')
     parser.add_argument("--pred_mask_color", type=str, help='color of the mask area in "# # #", where they correspond to R,G,B values from 0-255')
     parser.add_argument("--importance_mask_color", type=str, help='color of the mask area in "# # #", where they correspond to R,G,B values from 0-255')

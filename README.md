@@ -9,7 +9,7 @@ python render.py --dataset /data3/leoho/arfriend --fps 30 --pred_path render --p
 
 python render.py --dataset /data3/leoho/arfriend --fps 30 --pred_path render --pred_masked True --pred_mask_color "255 0 0" --importance_mask_color "0 255 0"
 
-python demo.py --dataset /data3/leoho/arfriend --model_name "100_model.pth" --vertice_dim 72147 --feature_dim 64 --period 30 --train_subjects "001Sky 002Shirley" --condition 001Sky --subject 001Sky --wav_path "demo/wav/test.wav"
+python demo.py --dataset /data3/leoho/arfriend --model_path "prev_save/3-fix-lips/150_model.pth" --vertice_dim 72147 --feature_dim 128 --period 30 --train_subjects "001Sky 002Shirley" --template_path intermediates/templates_unmasked.pkl --result_masked False --subject 001Sky --wav_path "demo/wav/test.wav"
 
 ## FaceFormer
 
