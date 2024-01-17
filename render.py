@@ -101,8 +101,8 @@ def render_mesh_helper(args, mesh, t_center, mask_dict, rot=np.zeros(3), tex_img
     try:
         r = pyrender.OffscreenRenderer(viewport_width=frustum['width'], viewport_height=frustum['height'])
         color, _ = r.render(scene, flags=flags)
-    except:
-        print('pyrender: Failed rendering frame')
+    except Exception as e:
+        print('pyrender: Failed rendering frame: ' + str(e))
         color = np.zeros((frustum['height'], frustum['width'], 3), dtype='uint8')
 
     return color[..., ::-1]
@@ -127,8 +127,7 @@ def render_sequence_meshes(args, sequence_vertices, template, out_path, predicte
             render_mesh.vt, render_mesh.ft = vt, ft
         pred_img = render_mesh_helper(args, render_mesh, center, mask_dict, tex_img=tex_img)
         pred_img = pred_img.astype(np.uint8)
-        img = pred_img
-        writer_pred.write(img)
+        writer_pred.write(pred_img)
 
     writer_pred.release()
     tmp_video_file_2 = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=out_path)
@@ -165,7 +164,7 @@ def main():
     output_path = os.path.join(args.dataset, args.output)
     wav_path = os.path.join(args.dataset, args.wav_path)
     mask_dict = None
-    if args.pred_masked or args.importance_mask_color is not None:
+    if args.pred_masked or args.pred_mask_color is not None or args.importance_mask_color is not None:
         with open(os.path.join(args.dataset, args.mask_path), 'rb') as file:
             mask_dict = pickle.load(file)
     if args.clear_output and os.path.exists(output_path):

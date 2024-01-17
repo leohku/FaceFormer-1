@@ -107,7 +107,7 @@ def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
     parser.add_argument("--dataset", type=str, default="/data3/leoho/arfriend", help='base directory for dataset folder')
-    parser.add_argument("--vertice_dim", type=int, default=17543*3, help='number of vertices - unmasked: 24049*3')
+    parser.add_argument("--vertice_dim", type=int, default=17543*3, help='number of vertices - unmasked: 24049*3, masked: 17543*3')
     parser.add_argument("--feature_dim", type=int, default=128, help='128, or use 64 to save some VRAM')
     parser.add_argument("--period", type=int, default=30, help='period in PPE')
     parser.add_argument("--wav_path", type=str, default="wav", help='path of the audio signals')
