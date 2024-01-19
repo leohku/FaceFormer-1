@@ -6,6 +6,25 @@ import copy
 import math
 from wav2vec import Wav2Vec2Model
 
+class ImportanceMaskLoss(nn.Module):
+    def __init__(self, mask_dict, imp_bias, device):
+        super(ImportanceMaskLoss, self).__init__()
+        importance_mask_rel_verts = mask_dict['importance_mask_rel_verts']
+        importance_mask_indices = importance_mask_rel_verts * 3
+        importance_mask_indices = (importance_mask_indices[:, np.newaxis] + np.arange(3)).flatten()
+        self.imp_indices = importance_mask_indices
+        importance_weights = np.repeat(mask_dict['importance_mask_weights'], 3)
+        self.imp_weights = torch.from_numpy(importance_weights).unsqueeze(0).unsqueeze(0).to(device)
+        assert imp_bias > 0
+        self.imp_bias = imp_bias
+    
+    def forward(self, pred, target):
+        normal_loss = F.mse_loss(pred, target)
+        imp_loss = F.mse_loss(pred[:, :, self.imp_indices], target[:, :, self.imp_indices], reduction='none')
+        imp_loss = (imp_loss * self.imp_weights).mean()
+        total_loss = normal_loss + self.imp_bias * imp_loss
+        return total_loss
+
 # Temporal Bias, inspired by ALiBi: https://github.com/ofirpress/attention_with_linear_biases
 def init_biased_mask(n_head, max_seq_len, period):
     def get_slopes(n):

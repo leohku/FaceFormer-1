@@ -4,13 +4,15 @@ import argparse
 from tqdm import tqdm
 import os, shutil
 import copy
+import ast
+import pickle
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from data_loader import get_dataloaders
-from faceformer import Faceformer
+from faceformer import Faceformer, ImportanceMaskLoss
 
 def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=100):
     save_path = os.path.join(args.dataset, args.save_path)
@@ -125,6 +127,9 @@ def main():
     parser.add_argument("--val_splits", type=str, default="786 792", help='validation splits in "x y" format denoting [x,y)')
     parser.add_argument("--test_subjects", type=str, default="001Sky")
     parser.add_argument("--test_splits", type=str, default="786 792", help='testing splits in "x y" format denoting [x,y)')
+    parser.add_argument("--train_with_imp_mask", type=ast.literal_eval, default=True, help='whether to train with importance mask loss')
+    parser.add_argument("--mask_path", type=str, default="mask/mask.pkl", help='path to the mask pickle file')
+    parser.add_argument("--imp_bias", type=float, default=0.01, help='bias term for the importance mask')
     args = parser.parse_args()
 
     #build model
@@ -139,10 +144,17 @@ def main():
     os.environ['OMP_NUM_THREADS'] = '8'
     torch.set_num_threads(8)
     
-    #load data
+    # load data
     dataset = get_dataloaders(args)
+    
     # loss
-    criterion = nn.MSELoss()
+    if args.train_with_imp_mask:
+        with open(os.path.join(args.dataset, args.mask_path), 'rb') as f:
+            mask_dict = pickle.load(f)
+        criterion = ImportanceMaskLoss(mask_dict, args.imp_bias, args.device)
+    else:
+        mask_dict = None
+        criterion = nn.MSELoss()
 
     # Train the model
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,model.parameters()), lr=args.lr)
