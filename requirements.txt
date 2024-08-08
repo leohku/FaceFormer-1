@@ -38,7 +38,7 @@ pandas==1.5.1
 Pillow==9.4.0
 pooch==1.6.0
 portalocker==2.6.0
-psbody-mesh==0.4
+# psbody-mesh==0.4
 pyarrow==10.0.0
 pycparser==2.21
 pyglet==2.0.0
@@ -66,9 +66,9 @@ threadpoolctl==3.1.0
 tokenizers==0.10.3
 # Get them here:
 # https://pytorch.org/get-started/previous-versions/
-torch==1.9.0+cu111
-torchaudio==0.9.0
-torchvision==0.10.0+cu111
+# torch==1.9.0+cu111
+# torchaudio==0.9.0
+# torchvision==0.10.0+cu111
 tqdm==4.64.1
 transformers==4.6.1
 trimesh==3.9.27
