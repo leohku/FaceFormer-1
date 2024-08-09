@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import copy
 import math
 from wav2vec import Wav2Vec2Model
 
@@ -54,7 +53,7 @@ def enc_dec_mask(device, T, S):
     mask = torch.ones(T, S)
     for i in range(T):
         mask[i, i] = 0
-    return (mask==1).to(device=device)
+    return (mask==1).to(device)
 
 # Periodic Positional Encoding
 class PeriodicPositionalEncoding(nn.Module):
@@ -98,14 +97,13 @@ class Faceformer(nn.Module):
         self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         # style embedding
         self.obj_vector = nn.Linear(len(args.train_subjects.split()), args.feature_dim, bias=False)
-        self.device = args.device
+        self.device = torch.device(args.device)
         nn.init.constant_(self.vertice_map_r.weight, 0)
         nn.init.constant_(self.vertice_map_r.bias, 0)
 
-    def forward(self, audio, template, vertice, one_hot, criterion,teacher_forcing=True):
+    def forward(self, audio, vertice, one_hot, criterion,teacher_forcing=True):
         # tgt_mask: :math:`(T, T)`.
         # memory_mask: :math:`(T, S)`.
-        template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)#(1, feature_dim)
         frame_num = vertice.shape[1]
         hidden_states = self.audio_encoder(audio, frame_num=frame_num).last_hidden_state
@@ -113,13 +111,12 @@ class Faceformer(nn.Module):
 
         if teacher_forcing:
             vertice_emb = obj_embedding.unsqueeze(1) # (1,1,feature_dim)
-            style_emb = vertice_emb  
-            vertice_input = torch.cat((template,vertice[:,:-1]), 1) # shift one position
-            vertice_input = vertice_input - template
+            style_emb = vertice_emb
+            vertice_input = torch.cat((vertice[:,-1:],vertice[:,:-1]), 1) # shift one position
             vertice_input = self.vertice_map(vertice_input)
             vertice_input = vertice_input + style_emb
             vertice_input = self.PPE(vertice_input)
-            tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
+            tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(self.device)
             memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
             vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
             vertice_out = self.vertice_map_r(vertice_out)
@@ -131,7 +128,7 @@ class Faceformer(nn.Module):
                     vertice_input = self.PPE(style_emb)
                 else:
                     vertice_input = self.PPE(vertice_emb)
-                tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
+                tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(self.device)
                 memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
                 vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
                 vertice_out = self.vertice_map_r(vertice_out)
@@ -139,13 +136,11 @@ class Faceformer(nn.Module):
                 new_output = new_output + style_emb
                 vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
-        vertice_out = vertice_out + template
         loss = criterion(vertice_out, vertice) # (batch, seq_len, V*3)
         loss = torch.mean(loss)
         return loss
 
-    def predict(self, audio, template, one_hot):
-        template = template.unsqueeze(1) # (1,1, V*3)
+    def predict(self, audio, one_hot):
         obj_embedding = self.obj_vector(one_hot)
         hidden_states = self.audio_encoder(audio).last_hidden_state
         frame_num = hidden_states.shape[1]
@@ -159,7 +154,7 @@ class Faceformer(nn.Module):
             else:
                 vertice_input = self.PPE(vertice_emb)
 
-            tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
+            tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(self.device)
             memory_mask = enc_dec_mask(self.device, vertice_input.shape[1], hidden_states.shape[1])
             vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
             vertice_out = self.vertice_map_r(vertice_out)
@@ -167,5 +162,4 @@ class Faceformer(nn.Module):
             new_output = new_output + style_emb
             vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
-        vertice_out = vertice_out + template
         return vertice_out

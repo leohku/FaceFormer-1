@@ -2,12 +2,10 @@ import os
 import torch
 from collections import defaultdict
 from torch.utils import data
-import copy
 import numpy as np
-import pickle
 from tqdm import tqdm
-import random,math
-from transformers import Wav2Vec2FeatureExtractor,Wav2Vec2Processor
+import math
+from transformers import Wav2Vec2Processor
 import librosa    
 
 class Dataset(data.Dataset):
@@ -25,13 +23,12 @@ class Dataset(data.Dataset):
         file_name = self.data[index]["name"]
         audio = self.data[index]["audio"]
         vertice = self.data[index]["vertice"]
-        template = self.data[index]["template"]
         if self.data_type == "train":
             subject = file_name.split("_")[1]
             one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
         else:
             one_hot = self.one_hot_labels
-        return torch.FloatTensor(audio),torch.FloatTensor(vertice), torch.FloatTensor(template), torch.FloatTensor(one_hot), file_name
+        return torch.FloatTensor(audio),torch.FloatTensor(vertice), torch.FloatTensor(one_hot), file_name
 
     def __len__(self):
         return self.len
@@ -45,11 +42,15 @@ def read_data(args):
 
     audio_path = os.path.join(args.dataset, args.wav_path)
     vertices_path = os.path.join(args.dataset, args.vertices_path)
+    train_list_file = os.path.join(args.dataset, args.train_list)
+    test_list_file = os.path.join(args.dataset, args.test_list)
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    
+    with open(train_list_file, 'r') as fin:
+        train_list = [line.strip() for line in fin]
 
-    template_file = os.path.join(args.dataset, args.template_file)
-    with open(template_file, 'rb') as fin:
-        templates = pickle.load(fin,encoding='latin1')
+    with open(test_list_file, 'r') as fin:
+        test_list = [line.strip() for line in fin]
     
     for r, ds, fs in os.walk(audio_path):
         for f in tqdm(fs):
@@ -59,10 +60,7 @@ def read_data(args):
                 input_values = np.squeeze(processor(speech_array,sampling_rate=16000).input_values)
                 key = f.replace("wav", "npy")
                 data[key]["audio"] = input_values
-                subject_id = key.split("_")[1]
-                temp = templates[subject_id]
                 data[key]["name"] = f
-                data[key]["template"] = temp.reshape((-1)) 
                 vertice_path = os.path.join(vertices_path,f.replace("wav", "npy"))
                 if not os.path.exists(vertice_path):
                     del data[key]
@@ -73,33 +71,30 @@ def read_data(args):
     subjects_dict["train"] = [i for i in args.train_subjects.split(" ")]
     subjects_dict["val"] = [i for i in args.val_subjects.split(" ")]
     subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
-
-    splits = {'train':range(*[int(i) for i in args.train_splits.split(" ")]),
-              'val':range(*[int(i) for i in args.val_splits.split(" ")]),
-              'test':range(*[int(i) for i in args.test_splits.split(" ")])}
     
     def segmented_append(data_list, orig_v, seconds=15):
         audio_ticks = orig_v["audio"].shape[0]
         for i in range(math.ceil(audio_ticks / (16000 * seconds))):
             new_v = defaultdict(dict)
             new_v["name"] = orig_v["name"] + "-" + str(i)
-            new_v["template"] = orig_v["template"]
             if (i+1) * 16000 * seconds <= audio_ticks:
                 new_v["audio"] = orig_v["audio"][i * 16000 * seconds : (i+1) * 16000 * seconds]
                 new_v["vertice"] = orig_v["vertice"][i * 30 * seconds : (i+1) * 30 * seconds]
             else:
                 new_v["audio"] = orig_v["audio"][i * 16000 * seconds :]
                 new_v["vertice"] = orig_v["vertice"][i * 30 * seconds :]
+                # skip if audio is too short
+                if new_v["audio"].shape[0] / 16000 < 1:
+                    continue
             data_list.append(new_v)
    
     for k, v in data.items():
-        subject_id = k.split("_")[1]
-        sentence_id = int(k.split(".")[0][-3:])
-        if subject_id in subjects_dict["train"] and sentence_id in splits['train']:
+        date = k.split("_")[0]
+        sentence_id = k.split(".")[0][-3:]
+        if f'{date}_{sentence_id}' in train_list:
             segmented_append(train_data, v, seconds=args.segment_append_seconds)
-        if subject_id in subjects_dict["val"] and sentence_id in splits['val']:
+        if f'{date}_{sentence_id}' in test_list:
             segmented_append(valid_data, v, seconds=args.segment_append_seconds)
-        if subject_id in subjects_dict["test"] and sentence_id in splits['test']:
             segmented_append(test_data, v, seconds=args.segment_append_seconds) 
 
     print("Training: " + str(len(train_data)), "Validation: " + str(len(valid_data)), "Test: " + str(len(test_data)))
