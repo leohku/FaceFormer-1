@@ -144,3 +144,5 @@ vocaset/output
 vocaset/save
 BIWI/biwi.pth
 demo/
+evals/
+eccv_evals/
